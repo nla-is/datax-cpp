@@ -16,8 +16,7 @@ set(CMAKE_CXX_STANDARD 14)
 add_library(${PROJECT_NAME}
         datax.cpp
         datax.h)
-
-target_include_libraries(${PROJECT_NAME} INTERFACE ${CMAKE_CURRENT_BINARY_DIR})
+install(TARGETS ${PROJECT_NAME})
 
 add_executable(test-sdk
         test-sdk.cpp)
