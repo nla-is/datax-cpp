@@ -10,9 +10,8 @@ class Implementation : public datax::DataX {
   Implementation(Implementation &&) = delete;
 
   nlohmann::json Configuration() override;
-  datax::RawMessage NextRaw() override {
-    return datax::RawMessage();
-  }
+  datax::RawMessage NextRaw() override;
+
   datax::Message Next() override {
     return datax::Message();
   }
@@ -64,6 +63,21 @@ nlohmann::json Implementation::Configuration() {
   }
   std::ifstream in(configurationPath);
   return nlohmann::json::parse(in);
+}
+
+datax::RawMessage Implementation::NextRaw() {
+  int32_t size;
+  incoming->read(reinterpret_cast<char *>(&size), sizeof size);
+  datax::RawMessage message;
+  message.Data.resize(size + 1);
+  incoming->read(reinterpret_cast<char *>(message.Data.data()), size);
+  message.Data[size] = 0;
+  message.Stream = std::string(reinterpret_cast<char *>(message.Data.data()));
+
+  incoming->read(reinterpret_cast<char *>(&size), sizeof size);
+  message.Data.resize(size + 1);
+  incoming->read(reinterpret_cast<char *>(message.Data.data()), size);
+  return message;
 }
 
 std::shared_ptr<datax::DataX> datax::New() {
