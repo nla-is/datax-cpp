@@ -20,3 +20,7 @@ add_library(${PROJECT_NAME}
         datax.h)
 
 target_link_libraries(${PROJECT_NAME} PUBLIC nlohmann_json::nlohmann_json)
+
+add_executable(test-sdk
+        test-sdk.cpp)
+target_link_libraries(test-sdk ${PROJECT_NAME})
