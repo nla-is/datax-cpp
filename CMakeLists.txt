@@ -1,27 +1,13 @@
 cmake_minimum_required(VERSION 3.18)
 project(datax-cpp)
 
-include(FetchContent)
-
-FetchContent_Declare(json
-        GIT_REPOSITORY https://github.com/nlohmann/json
-        GIT_TAG v3.10.4
-        GIT_SHALLOW TRUE
-        GIT_PROGRESS TRUE
-        )
-
-FetchContent_GetProperties(json)
-if(NOT json_POPULATED)
-    FetchContent_Populate(json)
-    add_subdirectory(${json_SOURCE_DIR} ${json_BINARY_DIR} EXCLUDE_FROM_ALL)
-endif()
-
 set(CMAKE_CXX_STANDARD 14)
+
+include_directories(${CMAKE_CURRENT_SOURCE_DIR} 3rdparty/nlohmann)
 
 add_library(${PROJECT_NAME} STATIC
         datax.cpp
         datax.h)
-target_link_libraries(${PROJECT_NAME} PUBLIC nlohmann_json::nlohmann_json)
 target_include_directories(
         ${PROJECT_NAME}
         INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
@@ -34,7 +20,7 @@ install(TARGETS ${PROJECT_NAME}
 install(EXPORT ${PROJECT_NAME}-config
         NAMESPACE ${PROJECT_NAME}::
         DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME})
-install(FILES ${CMAKE_CURRENT_LIST_DIR}/datax.h
+install(FILES ${CMAKE_CURRENT_LIST_DIR}/datax.h ${CMAKE_CURRENT_LIST_DIR}/3rdparty/nlohmann/json.hpp
         DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
 add_executable(test-sdk

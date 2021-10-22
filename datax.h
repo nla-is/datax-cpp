@@ -1,7 +1,7 @@
 #ifndef _DATAX_H
 #define _DATAX_H
 
-#include <nlohmann/json.hpp>
+#include <json.hpp>
 
 namespace datax {
 class Exception : std::exception {
