@@ -13,9 +13,10 @@ FetchContent_Declare(json
 FetchContent_MakeAvailable(json)
 set(CMAKE_CXX_STANDARD 14)
 
-add_library(${PROJECT_NAME}
+add_library(${PROJECT_NAME} STATIC
         datax.cpp
         datax.h)
+target_link_libraries(${PROJECT_NAME} PUBLIC nlohmann_json::nlohmann_json)
 target_include_directories(
         ${PROJECT_NAME}
         INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>/include)
