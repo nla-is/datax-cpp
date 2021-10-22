@@ -10,7 +10,12 @@ FetchContent_Declare(json
         GIT_PROGRESS TRUE
         )
 
-FetchContent_MakeAvailable(json)
+FetchContent_GetProperties(json)
+if(NOT json_POPULATED)
+    FetchContent_Populate(json)
+    add_subdirectory(${json_SOURCE_DIR} ${json_BINARY_DIR} EXCLUDE_FROM_ALL)
+endif()
+
 set(CMAKE_CXX_STANDARD 14)
 
 add_library(${PROJECT_NAME} STATIC
