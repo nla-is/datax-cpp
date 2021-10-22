@@ -14,7 +14,7 @@ target_include_directories(
 
 # install (if required)
 target_include_directories(${PROJECT_NAME}
-        INTERFACE $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
+        INTERFACE $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}> $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/3rdparty/nlohmann>)
 install(TARGETS ${PROJECT_NAME}
         EXPORT ${PROJECT_NAME}-config)
 install(EXPORT ${PROJECT_NAME}-config
