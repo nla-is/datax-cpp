@@ -11,6 +11,9 @@ int main() {
 
   std::cout << "Configuration: " << dx->Configuration() << std::endl;
 
-  auto msg = dx->NextRaw();
-  std::cout << "Received " << msg.Data.size() << " byte(s) from '" << msg.Stream << "'" << std::endl;
+  auto raw = dx->NextRaw();
+  std::cout << "Received " << raw.Data.size() << " byte(s) from '" << raw.Stream << "'" << std::endl;
+
+  auto msg = dx->Next();
+  std::cout << "Received " << msg.Data << " byte(s) from '" << msg.Stream << "'" << std::endl;
 }

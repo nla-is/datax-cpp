@@ -2,6 +2,7 @@
 
 #include <cstdlib>
 #include <fstream>
+#include <iostream>
 
 class Implementation : public datax::DataX {
  public:
@@ -11,10 +12,8 @@ class Implementation : public datax::DataX {
 
   nlohmann::json Configuration() override;
   datax::RawMessage NextRaw() override;
+  datax::Message Next() override;
 
-  datax::Message Next() override {
-    return datax::Message();
-  }
   void Emit(const nlohmann::json &message) override {
 
   }
@@ -75,9 +74,17 @@ datax::RawMessage Implementation::NextRaw() {
   message.Stream = std::string(reinterpret_cast<char *>(message.Data.data()));
 
   incoming->read(reinterpret_cast<char *>(&size), sizeof size);
-  message.Data.resize(size + 1);
+  message.Data.resize(size);
   incoming->read(reinterpret_cast<char *>(message.Data.data()), size);
   return message;
+}
+
+datax::Message Implementation::Next() {
+  auto raw = NextRaw();
+  datax::Message msg;
+  msg.Stream = raw.Stream;
+  msg.Data = nlohmann::json::from_msgpack(raw.Data);
+  return msg;
 }
 
 std::shared_ptr<datax::DataX> datax::New() {
