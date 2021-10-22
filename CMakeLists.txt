@@ -3,7 +3,7 @@ project(datax-cpp)
 
 set(CMAKE_CXX_STANDARD 14)
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR} 3rdparty/nlohmann)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/nlohmann)
 
 add_library(${PROJECT_NAME} STATIC
         datax.cpp
@@ -21,7 +21,7 @@ install(EXPORT ${PROJECT_NAME}-config
         NAMESPACE ${PROJECT_NAME}::
         DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME})
 install(FILES ${CMAKE_CURRENT_LIST_DIR}/datax.h ${CMAKE_CURRENT_LIST_DIR}/3rdparty/nlohmann/json.hpp
-        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+       TYPE INCLUDE)
 
 add_executable(test-sdk
         test-sdk.cpp)
