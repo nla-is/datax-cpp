@@ -14,15 +14,9 @@ class Implementation : public datax::DataX {
   datax::RawMessage NextRaw() override;
   datax::Message Next() override;
 
-  void Emit(const nlohmann::json &message) override {
-
-  }
-  void EmitRaw(const std::vector<unsigned char> &data) override {
-
-  }
-  void EmitRaw(const unsigned char *data, int dataSize) override {
-
-  }
+  void Emit(const nlohmann::json &message) override;
+  void EmitRaw(const std::vector<unsigned char> &data) override;
+  void EmitRaw(const unsigned char *data, int dataSize) override;
 
   static std::shared_ptr<datax::DataX> Instance() {
     std::shared_ptr<datax::DataX> instance(new Implementation);
@@ -85,6 +79,22 @@ datax::Message Implementation::Next() {
   msg.Stream = raw.Stream;
   msg.Data = nlohmann::json::from_msgpack(raw.Data);
   return msg;
+}
+
+void Implementation::Emit(const nlohmann::json &message) {
+  EmitRaw(nlohmann::json::to_msgpack(message));
+}
+
+void Implementation::EmitRaw(const std::vector<unsigned char> &data) {
+  EmitRaw(data.data(), static_cast<int>(data.size()));
+}
+
+void Implementation::EmitRaw(const unsigned char *data, int dataSize) {
+  auto size = static_cast<int32_t>(dataSize);
+  outgoing->write(reinterpret_cast<const char *>(&size), sizeof size);
+  outgoing->flush();
+  outgoing->write(reinterpret_cast<const char *>(data), size);
+  outgoing->flush();
 }
 
 std::shared_ptr<datax::DataX> datax::New() {

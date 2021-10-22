@@ -16,4 +16,7 @@ int main() {
 
   auto msg = dx->Next();
   std::cout << "Received " << msg.Data << " byte(s) from '" << msg.Stream << "'" << std::endl;
+
+  msg.Data["received"] = true;
+  dx->Emit(msg.Data);
 }
