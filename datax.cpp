@@ -5,6 +5,10 @@
 
 class Implementation : public datax::DataX {
  public:
+  Implementation();
+  Implementation(const Implementation &) = delete;
+  Implementation(Implementation &&) = delete;
+
   nlohmann::json Configuration() override;
   datax::RawMessage NextRaw() override {
     return datax::RawMessage();
@@ -26,6 +30,10 @@ class Implementation : public datax::DataX {
     std::shared_ptr<datax::DataX> instance(new Implementation);
     return instance;
   }
+
+ private:
+  std::shared_ptr<std::ifstream> incoming;
+  std::shared_ptr<std::ofstream> outgoing;
 };
 
 std::string Getenv(const std::string &variable) {
@@ -34,6 +42,19 @@ std::string Getenv(const std::string &variable) {
     return "";
   }
   return {value};
+}
+
+Implementation::Implementation() {
+  auto incomingPath = Getenv("DATAX_INCOMING");
+  if (incomingPath.empty()) {
+    incomingPath = "/datax/incoming";
+  }
+  auto outgoingPath = Getenv("DATAX_OUTGOING");
+  if (outgoingPath.empty()) {
+    outgoingPath = "/datax/outgoing";
+  }
+  incoming = std::make_shared<std::ifstream>(incomingPath);
+  outgoing = std::make_shared<std::ofstream>(outgoingPath);
 }
 
 nlohmann::json Implementation::Configuration() {
