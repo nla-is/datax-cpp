@@ -3,6 +3,24 @@
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
+#include <sstream>
+#include <utility>
+
+#include <grpcpp/grpcpp.h>
+
+#include "sdk.grpc.pb.h"
+
+class Exception : public datax::Exception {
+ public:
+  explicit Exception(std::string message) : message(std::move(message)) {}
+
+  const char *what() const noexcept override {
+    return message.c_str();
+  }
+
+ private:
+  std::string message;
+};
 
 class Implementation : public datax::DataX {
  public:
@@ -14,9 +32,9 @@ class Implementation : public datax::DataX {
   datax::RawMessage NextRaw() override;
   datax::Message Next() override;
 
-  void Emit(const nlohmann::json &message) override;
-  void EmitRaw(const std::vector<unsigned char> &data) override;
-  void EmitRaw(const unsigned char *data, int dataSize) override;
+  void Emit(const nlohmann::json &message, const std::string &reference = "") override;
+  void EmitRaw(const std::vector<unsigned char> &data, const std::string &reference = "") override;
+  void EmitRaw(const unsigned char *data, int dataSize, const std::string &reference = "") override;
 
   static std::shared_ptr<datax::DataX> Instance() {
     std::shared_ptr<datax::DataX> instance(new Implementation);
@@ -24,8 +42,8 @@ class Implementation : public datax::DataX {
   }
 
  private:
-  std::shared_ptr<std::ifstream> incoming;
-  std::shared_ptr<std::ofstream> outgoing;
+  std::shared_ptr<grpc::Channel> clientConn;
+  std::unique_ptr<datax::sdk::SDK::Stub> client;
 };
 
 std::string Getenv(const std::string &variable) {
@@ -37,16 +55,12 @@ std::string Getenv(const std::string &variable) {
 }
 
 Implementation::Implementation() {
-  auto incomingPath = Getenv("DATAX_INCOMING");
-  if (incomingPath.empty()) {
-    incomingPath = "/datax/incoming";
+  auto sidecarAddress = Getenv("DATAX_SIDECAR_ADDRESS");
+  if (sidecarAddress.empty()) {
+    sidecarAddress = "127.0.0.1:20001";
   }
-  auto outgoingPath = Getenv("DATAX_OUTGOING");
-  if (outgoingPath.empty()) {
-    outgoingPath = "/datax/outgoing";
-  }
-  incoming = std::make_shared<std::ifstream>(incomingPath);
-  outgoing = std::make_shared<std::ofstream>(outgoingPath);
+  clientConn = grpc::CreateChannel(sidecarAddress, grpc::InsecureChannelCredentials());
+  client = datax::sdk::SDK::NewStub(clientConn);
 }
 
 nlohmann::json Implementation::Configuration() {
@@ -59,17 +73,20 @@ nlohmann::json Implementation::Configuration() {
 }
 
 datax::RawMessage Implementation::NextRaw() {
-  int32_t size;
-  incoming->read(reinterpret_cast<char *>(&size), sizeof size);
+  grpc::ClientContext context;
+  datax::sdk::NextRequest request;
+  datax::sdk::NextResponse reply;
+  auto status = client->Next(&context, request, &reply);
+  if (!status.ok()) {
+    std::ostringstream oss;
+    oss << status.error_code() << ": " << status.error_message();
+    throw Exception(oss.str());
+  }
   datax::RawMessage message;
-  message.Data.resize(size + 1);
-  incoming->read(reinterpret_cast<char *>(message.Data.data()), size);
-  message.Data[size] = 0;
-  message.Stream = std::string(reinterpret_cast<char *>(message.Data.data()));
-
-  incoming->read(reinterpret_cast<char *>(&size), sizeof size);
-  message.Data.resize(size);
-  incoming->read(reinterpret_cast<char *>(message.Data.data()), size);
+  const auto &data = reply.message().data();
+  message.Data = std::vector<unsigned char>(reinterpret_cast<const unsigned char *>(data.data()),
+                                            reinterpret_cast<const unsigned char *>(data.data()) + data.size());
+  message.Stream = reply.message().stream();
   return message;
 }
 
@@ -81,20 +98,28 @@ datax::Message Implementation::Next() {
   return msg;
 }
 
-void Implementation::Emit(const nlohmann::json &message) {
-  EmitRaw(nlohmann::json::to_msgpack(message));
+void Implementation::Emit(const nlohmann::json &message, const std::string &reference) {
+  EmitRaw(nlohmann::json::to_msgpack(message), reference);
 }
 
-void Implementation::EmitRaw(const std::vector<unsigned char> &data) {
-  EmitRaw(data.data(), static_cast<int>(data.size()));
+void Implementation::EmitRaw(const std::vector<unsigned char> &data, const std::string &reference) {
+  EmitRaw(data.data(), static_cast<int>(data.size()), reference);
 }
 
-void Implementation::EmitRaw(const unsigned char *data, int dataSize) {
-  auto size = static_cast<int32_t>(dataSize);
-  outgoing->write(reinterpret_cast<const char *>(&size), sizeof size);
-  outgoing->flush();
-  outgoing->write(reinterpret_cast<const char *>(data), size);
-  outgoing->flush();
+void Implementation::EmitRaw(const unsigned char *data, int dataSize, const std::string &reference) {
+  grpc::ClientContext context;
+  datax::sdk::EmitRequest request;
+  datax::sdk::EmitResponse reply;
+
+  request.mutable_message()->set_data(data, dataSize);
+  request.mutable_reference()->set_stream(reference);
+
+  auto status = client->Emit(&context, request, &reply);
+  if (!status.ok()) {
+    std::ostringstream oss;
+    oss << status.error_code() << ": " << status.error_message();
+    throw Exception(oss.str());
+  }
 }
 
 std::shared_ptr<datax::DataX> datax::New() {

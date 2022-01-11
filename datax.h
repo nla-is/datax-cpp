@@ -4,7 +4,7 @@
 #include <json.hpp>
 
 namespace datax {
-class Exception : std::exception {
+class Exception : public std::exception {
 };
 
 struct RawMessage {
@@ -22,9 +22,9 @@ class DataX {
   virtual nlohmann::json Configuration() = 0;
   virtual RawMessage NextRaw() = 0;
   virtual Message Next() = 0;
-  virtual void Emit(const nlohmann::json &message) = 0;
-  virtual void EmitRaw(const std::vector<unsigned char> &data) = 0;
-  virtual void EmitRaw(const unsigned char *data, int dataSize) = 0;
+  virtual void Emit(const nlohmann::json &message, const std::string &reference = "") = 0;
+  virtual void EmitRaw(const std::vector<unsigned char> &data, const std::string &reference = "") = 0;
+  virtual void EmitRaw(const unsigned char *data, int dataSize, const std::string &reference = "") = 0;
 };
 
 std::shared_ptr<DataX> New();
