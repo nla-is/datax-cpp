@@ -4,32 +4,41 @@ project(datax-cpp)
 set(CMAKE_CXX_STANDARD 14)
 
 find_package(Protobuf REQUIRED)
-#find_package(gRPC REQUIRED)
+find_package(gRPC CONFIG REQUIRED)
 
 find_program(GRPC_CPP_PLUGIN grpc_cpp_plugin)
-find_library(GRPC_CPP_LIBRARY grpc++ libgrpc++)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR})
-
-#get_target_property(GRPC_CPP_PLUGIN gRPC::grpc_cpp_plugin LOCATION)
 
 
 message(STATUS "${Protobuf_PROTOC_EXECUTABLE} ${GRPC_CPP_PLUGIN}")
 
-add_custom_command(OUTPUT sdk.grpc.pb.cc sdk.grpc.pb.h sdk.pb.cc sdk.pb.h
-        COMMAND protoc --grpc_out . --cpp_out . --plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN} -I ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/sdk.proto)
+set(PROTOCOL_FILE ${CMAKE_CURRENT_SOURCE_DIR}/datax-sdk-protocol/v1/datax-sdk-protocol.proto)
 
+add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/datax-sdk-protocol-v1.proto
+        COMMAND ${CMAKE_COMMAND} -E copy ${PROTOCOL_FILE} ${CMAKE_CURRENT_BINARY_DIR}/datax-sdk-protocol-v1.proto
+        DEPENDS ${PROTOCOL_FILE})
+
+add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/datax-sdk-protocol-v1.grpc.pb.cc
+        ${CMAKE_CURRENT_BINARY_DIR}/datax-sdk-protocol-v1.grpc.pb.h
+        ${CMAKE_CURRENT_BINARY_DIR}/datax-sdk-protocol-v1.pb.cc
+        ${CMAKE_CURRENT_BINARY_DIR}/datax-sdk-protocol-v1.pb.h
+        COMMAND ${Protobuf_PROTOC_EXECUTABLE} --grpc_out ${CMAKE_CURRENT_SOURCE_DIR} --cpp_out ${CMAKE_CURRENT_SOURCE_DIR} --plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN} -I ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR}/datax-sdk-protocol-v1.proto
+        DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/datax-sdk-protocol-v1.proto)
+
+add_custom_target(generate
+        DEPENDS sdk.grpc.pb.cc)
 add_library(${PROJECT_NAME} STATIC
         datax.cpp
         datax.h
-        sdk.grpc.pb.cc
-        sdk.grpc.pb.h
-        sdk.pb.cc
-        sdk.pb.h)
+        ${CMAKE_CURRENT_BINARY_DIR}/datax-sdk-protocol-v1.grpc.pb.cc
+        ${CMAKE_CURRENT_BINARY_DIR}/datax-sdk-protocol-v1.grpc.pb.h
+        ${CMAKE_CURRENT_BINARY_DIR}/datax-sdk-protocol-v1.pb.cc
+        ${CMAKE_CURRENT_BINARY_DIR}/datax-sdk-protocol-v1.pb.h)
 target_include_directories(
         ${PROJECT_NAME}
         INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
-target_link_libraries(${PROJECT_NAME} protobuf::libprotobuf ${GRPC_CPP_LIBRARY})
+target_link_libraries(${PROJECT_NAME} protobuf::libprotobuf gRPC::grpc++)
 
 # install (if required)
 target_include_directories(${PROJECT_NAME}

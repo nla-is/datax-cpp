@@ -8,11 +8,13 @@ class Exception : public std::exception {
 };
 
 struct RawMessage {
+  std::string Reference;
   std::string Stream;
   std::vector<unsigned char> Data;
 };
 
 struct Message {
+  std::string Reference;
   std::string Stream;
   nlohmann::json Data;
 };

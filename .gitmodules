@@ -1,0 +1,3 @@
+[submodule "datax-sdk-protocol"]
+	path = datax-sdk-protocol
+	url = https://github.com/nla-is/datax-sdk-protocol.git

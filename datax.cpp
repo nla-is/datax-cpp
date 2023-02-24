@@ -8,7 +8,7 @@
 
 #include <grpcpp/grpcpp.h>
 
-#include "sdk.grpc.pb.h"
+#include "datax-sdk-protocol-v1.grpc.pb.h"
 
 class Exception : public datax::Exception {
  public:
@@ -43,7 +43,7 @@ class Implementation : public datax::DataX {
 
  private:
   std::shared_ptr<grpc::Channel> clientConn;
-  std::unique_ptr<datax::sdk::SDK::Stub> client;
+  std::unique_ptr<datax::sdk::protocol::v1::DataX::Stub> client;
 };
 
 std::string Getenv(const std::string &variable) {
@@ -60,7 +60,7 @@ Implementation::Implementation() {
     sidecarAddress = "127.0.0.1:20001";
   }
   clientConn = grpc::CreateChannel(sidecarAddress, grpc::InsecureChannelCredentials());
-  client = datax::sdk::SDK::NewStub(clientConn);
+  client = datax::sdk::protocol::v1::DataX::NewStub(clientConn);
 }
 
 nlohmann::json Implementation::Configuration() {
@@ -74,8 +74,8 @@ nlohmann::json Implementation::Configuration() {
 
 datax::RawMessage Implementation::NextRaw() {
   grpc::ClientContext context;
-  datax::sdk::NextRequest request;
-  datax::sdk::NextResponse reply;
+  datax::sdk::protocol::v1::NextOptions request;
+  datax::sdk::protocol::v1::NextMessage reply;
   auto status = client->Next(&context, request, &reply);
   if (!status.ok()) {
     std::ostringstream oss;
@@ -83,10 +83,11 @@ datax::RawMessage Implementation::NextRaw() {
     throw Exception(oss.str());
   }
   datax::RawMessage message;
-  const auto &data = reply.message().data();
+  const auto &data = reply.data();
   message.Data = std::vector<unsigned char>(reinterpret_cast<const unsigned char *>(data.data()),
                                             reinterpret_cast<const unsigned char *>(data.data()) + data.size());
-  message.Stream = reply.message().stream();
+  message.Reference = reply.reference();
+  message.Stream = reply.stream();
   return message;
 }
 
@@ -108,11 +109,11 @@ void Implementation::EmitRaw(const std::vector<unsigned char> &data, const std::
 
 void Implementation::EmitRaw(const unsigned char *data, int dataSize, const std::string &reference) {
   grpc::ClientContext context;
-  datax::sdk::EmitRequest request;
-  datax::sdk::EmitResponse reply;
+  datax::sdk::protocol::v1::EmitMessage request;
+  datax::sdk::protocol::v1::EmitResult reply;
 
-  request.mutable_message()->set_data(data, dataSize);
-  request.mutable_reference()->set_stream(reference);
+  request.set_data(data, dataSize);
+  request.set_reference(reference);
 
   auto status = client->Emit(&context, request, &reply);
   if (!status.ok()) {
