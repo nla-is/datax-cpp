@@ -23,7 +23,7 @@ add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/datax-sdk-protocol-v1.grpc
         ${CMAKE_CURRENT_BINARY_DIR}/datax-sdk-protocol-v1.grpc.pb.h
         ${CMAKE_CURRENT_BINARY_DIR}/datax-sdk-protocol-v1.pb.cc
         ${CMAKE_CURRENT_BINARY_DIR}/datax-sdk-protocol-v1.pb.h
-        COMMAND ${Protobuf_PROTOC_EXECUTABLE} --grpc_out ${CMAKE_CURRENT_SOURCE_DIR} --cpp_out ${CMAKE_CURRENT_SOURCE_DIR} --plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN} -I ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR}/datax-sdk-protocol-v1.proto
+        COMMAND ${Protobuf_PROTOC_EXECUTABLE} --grpc_out ${CMAKE_CURRENT_BINARY_DIR} --cpp_out ${CMAKE_CURRENT_BINARY_DIR} --plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN} -I ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR}/datax-sdk-protocol-v1.proto
         DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/datax-sdk-protocol-v1.proto)
 
 add_custom_target(generate
