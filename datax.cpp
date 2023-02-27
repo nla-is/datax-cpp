@@ -84,6 +84,10 @@ datax::RawMessage Implementation::NextRaw() {
   }
   datax::RawMessage message;
   const auto &data = reply.data();
+  if (data.empty()) {
+    fprintf(stderr, "Empty data\n");
+    exit(-1);
+  }
   message.Data = std::vector<unsigned char>(reinterpret_cast<const unsigned char *>(data.data()),
                                             reinterpret_cast<const unsigned char *>(data.data()) + data.size());
   message.Reference = reply.reference();
@@ -96,6 +100,7 @@ datax::Message Implementation::Next() {
   datax::Message msg;
   msg.Stream = raw.Stream;
   msg.Reference = raw.Reference;
+  printf("Data size: %lu", raw.Data.size());
   msg.Data = nlohmann::json::from_msgpack(raw.Data);
   return msg;
 }
