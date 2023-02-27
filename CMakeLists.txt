@@ -6,12 +6,14 @@ set(CMAKE_CXX_STANDARD 14)
 find_package(Protobuf REQUIRED)
 find_package(gRPC CONFIG REQUIRED)
 
-find_program(GRPC_CPP_PLUGIN grpc_cpp_plugin)
+if(NOT GRPC_CPP_PLUGIN)
+    find_program(GRPC_CPP_PLUGIN grpc_cpp_plugin REQUIRED)
+endif()
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR})
 
-
-message(STATUS "${Protobuf_PROTOC_EXECUTABLE} ${GRPC_CPP_PLUGIN}")
+message(STATUS "Protobuf compiler: ${Protobuf_PROTOC_EXECUTABLE}")
+message(STATUS "gRPC C++ plugin: ${GRPC_CPP_PLUGIN}")
 
 set(PROTOCOL_FILE ${CMAKE_CURRENT_SOURCE_DIR}/datax-sdk-protocol/v1/datax-sdk-protocol.proto)
 
