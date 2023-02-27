@@ -95,6 +95,7 @@ datax::Message Implementation::Next() {
   auto raw = NextRaw();
   datax::Message msg;
   msg.Stream = raw.Stream;
+  msg.Reference = raw.Reference;
   msg.Data = nlohmann::json::from_msgpack(raw.Data);
   return msg;
 }
