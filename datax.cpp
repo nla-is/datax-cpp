@@ -73,6 +73,7 @@ nlohmann::json Implementation::Configuration() {
 }
 
 datax::RawMessage Implementation::NextRaw() {
+  printf("NextRaw()\n");
   grpc::ClientContext context;
   datax::sdk::protocol::v1::NextOptions request;
   datax::sdk::protocol::v1::NextMessage reply;
@@ -96,6 +97,7 @@ datax::RawMessage Implementation::NextRaw() {
 }
 
 datax::Message Implementation::Next() {
+  printf("Next()\n");
   auto raw = NextRaw();
   datax::Message msg;
   msg.Stream = raw.Stream;
