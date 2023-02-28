@@ -1,6 +1,6 @@
 #include <datax.h>
 
-uint64_t now() {
+uint64_t currentTime() {
   using namespace std::chrono;
   return duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
 }
@@ -13,16 +13,17 @@ int main() {
   uint64_t previousEmitTime = 0;
   uint64_t latestReport = 0;
   while (true) {
-    auto start = now();
+    auto start = currentTime();
     auto msg = dx->Next();
-    nextTime += now() - start;
+    nextTime += currentTime() - start;
     msg.Data["repeated"] = true;
-    start = now();
+    start = currentTime();
     dx->Emit(msg.Data, msg.Reference);
-    emitTime += now() - start;
-    if (now() - latestReport > 10000) {
+    auto now = currentTime();
+    emitTime += now - start;
+    if (now - latestReport > 10000) {
       if (latestReport > 0) {
-        auto elapsedTime = now() - latestReport;
+        auto elapsedTime = now - latestReport;
 
         auto nextTimeTaken = nextTime - previousNextTime;
         auto emitTimeTaken = emitTime - previousEmitTime;
@@ -35,11 +36,13 @@ int main() {
             processingTimeTaken,
             (((double) processingTimeTaken) / ((double) elapsedTime)) * 100,
             emitTimeTaken,
-            (((double) emitTimeTaken) / ((double) elapsedTime)) * 100)
+            (((double) emitTimeTaken) / ((double) elapsedTime)) * 100);
       }
 
       previousNextTime = nextTime;
       previousEmitTime = emitTime;
+
+      latestReport = now;
     }
   }
 }

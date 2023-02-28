@@ -7,10 +7,11 @@ include(FetchContent)
 
 FetchContent_Declare(datax-cpp
         GIT_REPOSITORY https://github.com/nla-is/datax-cpp.git
-        GIT_TAG 0f6cdaac0179871ba87bb67718989fac4d2909b2
+        GIT_TAG 0c4cdcdea55c754434bf01f581c827efc4ee0fad
         )
 FetchContent_MakeAvailable(datax-cpp)
 
 add_executable(${PROJECT_NAME}
         main.cpp)
 target_link_libraries(${PROJECT_NAME} datax-cpp)
+target_compile_options(${PROJECT_NAME} PUBLIC "-O3")

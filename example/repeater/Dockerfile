@@ -15,11 +15,11 @@ RUN apt-get update \
 RUN mkdir /src
 
 ADD CMakeLists.txt /src
-ADD main.cpp /src
 
 RUN mkdir /build
-
 WORKDIR /build
+
+ADD main.cpp /src
 
 RUN cmake /src && make
 

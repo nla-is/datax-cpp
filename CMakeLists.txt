@@ -37,6 +37,7 @@ add_library(${PROJECT_NAME} STATIC
         ${CMAKE_CURRENT_BINARY_DIR}/datax-sdk-protocol-v1.grpc.pb.h
         ${CMAKE_CURRENT_BINARY_DIR}/datax-sdk-protocol-v1.pb.cc
         ${CMAKE_CURRENT_BINARY_DIR}/datax-sdk-protocol-v1.pb.h)
+target_compile_options(${PROJECT_NAME} PUBLIC "-O3")
 target_include_directories(
         ${PROJECT_NAME}
         INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
