@@ -85,12 +85,18 @@ void Implementation::report() {
     auto transferring = transferringTime - previousTransferringTime;
 
     auto processing = elapsedTime - receiving - decoding - encoding - transferring;
-    fprintf(stderr, "[DataX] Time for receiving: %llu ms (%0.2f%%), decoding: %llu ms (%0.2f%%), processing: %llu ms (%0.2f%%), encoding: %llu ms (%0.2f%%), transferring: %llu ms (%0.2f%%)\n",
-            receiving, (((double) receiving) / ((double) elapsedTime)) * 100,
-            decoding, (((double) decoding) / ((double) elapsedTime)) * 100,
-            processing, (((double) processing) / ((double) elapsedTime)) * 100,
-            encoding, (((double) encoding) / ((double) elapsedTime)) * 100,
-            transferring, (((double) transferring) / ((double) elapsedTime)) * 100
+    fprintf(stderr,
+            "[DataX] Time for receiving: %llu ms (%0.2f%%), decoding: %llu ms (%0.2f%%), processing: %llu ms (%0.2f%%), encoding: %llu ms (%0.2f%%), transferring: %llu ms (%0.2f%%)\n",
+            receiving,
+            (((double) receiving) / ((double) elapsedTime)) * 100,
+            decoding,
+            (((double) decoding) / ((double) elapsedTime)) * 100,
+            processing,
+            (((double) processing) / ((double) elapsedTime)) * 100,
+            encoding,
+            (((double) encoding) / ((double) elapsedTime)) * 100,
+            transferring,
+            (((double) transferring) / ((double) elapsedTime)) * 100
     );
   }
 
@@ -102,7 +108,9 @@ void Implementation::report() {
   latestReport = now();
 }
 
-Implementation::Implementation() {
+Implementation::Implementation() : receivingTime(0), decodingTime(0),
+                                   encodingTime(0), transferringTime(0),
+                                   latestReport(0) {
   auto sidecarAddress = Getenv("DATAX_SIDECAR_ADDRESS");
   if (sidecarAddress.empty()) {
     sidecarAddress = "127.0.0.1:20001";
