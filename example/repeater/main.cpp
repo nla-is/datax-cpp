@@ -22,7 +22,6 @@ int main() {
     auto now = currentTime();
     emitTime += now - start;
     if (now - latestReport > 10000) {
-      printf("Latest report: %lld\n", latestReport);
       if (latestReport > 0) {
         auto elapsedTime = now - latestReport;
 

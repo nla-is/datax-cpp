@@ -198,7 +198,7 @@ void Implementation::EmitRaw(const unsigned char *data, int dataSize, const std:
     oss << status.error_code() << ": " << status.error_message();
     throw Exception(oss.str());
   }
-  transferringTime = now() - start;
+  transferringTime += now() - start;
   report();
 }
 
