@@ -7,7 +7,7 @@ include(FetchContent)
 
 FetchContent_Declare(datax-cpp
         GIT_REPOSITORY https://github.com/nla-is/datax-cpp.git
-        GIT_TAG 7115556716a772673293187b28a904a7544ce326
+        GIT_TAG 00a0f6fdef34f86f5254faf20a51782c94ed324a
         )
 FetchContent_MakeAvailable(datax-cpp)
 

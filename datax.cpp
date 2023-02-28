@@ -156,7 +156,7 @@ datax::RawMessage Implementation::NextRaw() {
                                             reinterpret_cast<const unsigned char *>(data.data()) + data.size());
   message.Reference = reply.reference();
   message.Stream = reply.stream();
-  receivingTime = now() - start;
+  receivingTime += now() - start;
   report();
   return message;
 }
@@ -168,14 +168,14 @@ datax::Message Implementation::Next() {
   msg.Stream = raw.Stream;
   msg.Reference = raw.Reference;
   msg.Data = nlohmann::json::from_msgpack(raw.Data);
-  decodingTime = now() - start;
+  decodingTime += now() - start;
   return msg;
 }
 
 void Implementation::Emit(const nlohmann::json &message, const std::string &reference) {
   auto start = now();
   auto data = nlohmann::json::to_msgpack(message);
-  encodingTime = now() - start;
+  encodingTime += now() - start;
   EmitRaw(data, reference);
 }
 
