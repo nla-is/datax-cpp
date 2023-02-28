@@ -1,17 +1,17 @@
 #include <datax.h>
 
-uint64_t currentTime() {
-  using namespace std::chrono;
-  return duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
+int64_t currentTime() {
+  return static_cast<int64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
+      std::chrono::system_clock::now().time_since_epoch()).count());
 }
 
 int main() {
   auto dx = datax::New();
-  uint64_t nextTime = 0;
-  uint64_t previousNextTime = 0;
-  uint64_t emitTime = 0;
-  uint64_t previousEmitTime = 0;
-  uint64_t latestReport = 0;
+  int64_t nextTime = 0;
+  int64_t previousNextTime = 0;
+  int64_t emitTime = 0;
+  int64_t previousEmitTime = 0;
+  int64_t latestReport = 0;
   while (true) {
     auto start = currentTime();
     auto msg = dx->Next();
@@ -22,6 +22,7 @@ int main() {
     auto now = currentTime();
     emitTime += now - start;
     if (now - latestReport > 10000) {
+      printf("Latest report: %lld\n", latestReport);
       if (latestReport > 0) {
         auto elapsedTime = now - latestReport;
 
@@ -30,7 +31,7 @@ int main() {
         auto processingTimeTaken = elapsedTime - nextTimeTaken - emitTimeTaken;
 
         printf(
-            "Time taken for 'next()': %llu ms (%0.2f%%), processing: %llu ms (%0.2f%%), 'emit()': %llu ms (%0.2f%%)\n",
+            "Time taken for 'next()': %lld ms (%0.2f%%), processing: %lld ms (%0.2f%%), 'emit()': %lld ms (%0.2f%%)\n",
             nextTimeTaken,
             (((double) nextTimeTaken) / ((double) elapsedTime)) * 100,
             processingTimeTaken,
@@ -43,6 +44,7 @@ int main() {
       previousEmitTime = emitTime;
 
       latestReport = now;
+      fflush(stdout);
     }
   }
 }

@@ -10,9 +10,10 @@
 
 #include "datax-sdk-protocol-v1.grpc.pb.h"
 
-uint64_t now() {
-  using namespace std::chrono;
-  return duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
+namespace datax::sdk::implementation {
+int64_t now() {
+  return static_cast<int64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
+      std::chrono::system_clock::now().time_since_epoch()).count());
 }
 
 class Exception : public datax::Exception {
@@ -51,17 +52,17 @@ class Implementation : public datax::DataX {
   std::shared_ptr<grpc::Channel> clientConn;
   std::unique_ptr<datax::sdk::protocol::v1::DataX::Stub> client;
 
-  uint64_t receivingTime;
-  uint64_t decodingTime;
-  uint64_t encodingTime;
-  uint64_t transferringTime;
+  int64_t receivingTime;
+  int64_t decodingTime;
+  int64_t encodingTime;
+  int64_t transferringTime;
 
-  uint64_t previousReceivingTime;
-  uint64_t previousDecodingTime;
-  uint64_t previousEncodingTime;
-  uint64_t previousTransferringTime;
+  int64_t previousReceivingTime;
+  int64_t previousDecodingTime;
+  int64_t previousEncodingTime;
+  int64_t previousTransferringTime;
 
-  uint64_t latestReport;
+  int64_t latestReport;
 };
 
 std::string Getenv(const std::string &variable) {
@@ -100,9 +101,13 @@ void Implementation::report() {
     );
   }
 
+  assert(receivingTime >= previousReceivingTime);
   previousReceivingTime = receivingTime;
+  assert(decodingTime >= previousDecodingTime);
   previousDecodingTime = decodingTime;
+  assert(encodingTime >= previousEncodingTime);
   previousEncodingTime = encodingTime;
+  assert(transferringTime >= previousTransferringTime);
   previousTransferringTime = transferringTime;
 
   latestReport = now();
@@ -110,6 +115,8 @@ void Implementation::report() {
 
 Implementation::Implementation() : receivingTime(0), decodingTime(0),
                                    encodingTime(0), transferringTime(0),
+                                   previousReceivingTime(0), previousDecodingTime(0),
+                                   previousEncodingTime(0), previousTransferringTime(0),
                                    latestReport(0) {
   auto sidecarAddress = Getenv("DATAX_SIDECAR_ADDRESS");
   if (sidecarAddress.empty()) {
@@ -195,6 +202,8 @@ void Implementation::EmitRaw(const unsigned char *data, int dataSize, const std:
   report();
 }
 
+}
+
 std::shared_ptr<datax::DataX> datax::New() {
-  return Implementation::Instance();
+  return sdk::implementation::Implementation::Instance();
 }
