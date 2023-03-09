@@ -87,7 +87,7 @@ void Implementation::report() {
 
     auto processing = elapsedTime - receiving - decoding - encoding - transferring;
     fprintf(stderr,
-            "[DataX] Time for receiving: %llu ms (%0.2f%%), decoding: %llu ms (%0.2f%%), processing: %llu ms (%0.2f%%), encoding: %llu ms (%0.2f%%), transferring: %llu ms (%0.2f%%)\n",
+            "[DataX] Time for receiving: %ld ms (%0.2lf%%), decoding: %ld ms (%0.2lf%%), processing: %ld ms (%0.2lf%%), encoding: %ld ms (%0.2lf%%), transferring: %ld ms (%0.2lf%%)\n",
             receiving,
             (((double) receiving) / ((double) elapsedTime)) * 100,
             decoding,
