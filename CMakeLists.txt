@@ -8,7 +8,7 @@ find_package(gRPC CONFIG)
 
 if(gRPC_FOUND)
   set(GRPCPP_INCLUDE_DIRS $<TARGET_PROPERTY:gRPC::grpc++,INTERFACE_INCLUDE_DIRECTORIES>)
-  set(GRPCPP_LIBRARIES $<TARGET_PROPERTY:gRPC::grpc++,INTERFACE_LINK_LIBRARIES>)
+  set(GRPCPP_LIBRARIES gRPC::grpc++)
 else()
   find_package(PkgConfig REQUIRED)
   pkg_search_module(GRPC REQUIRED grpc)
