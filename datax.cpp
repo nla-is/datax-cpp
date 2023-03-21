@@ -93,13 +93,19 @@ EmitChannel::~EmitChannel() {
 }
 
 void EmitChannel::Write(std::vector<unsigned char> data) {
+  std::cerr << "EmitChannel::Write " << data.size() << std::endl;
+  if (throwException) {
+    throw exception;
+  }
   std::unique_lock lock(mutex);
   while (!slotEmpty) {
     cv.wait(lock);
   }
+  std::cerr << "EmitChannel::Write slot is empty" << std::endl;
   this->data = std::move(data);
   slotEmpty = false;
   cv.notify_all();
+  std::cerr << "EmitChannel::Write slot notified slot full" << std::endl;
 }
 
 void EmitChannel::run() {
@@ -110,6 +116,8 @@ void EmitChannel::run() {
     return;
   }
 
+  std::cerr << "EmitChannel::run opened " << path << std::endl;
+
   while (true) {
     std::vector<unsigned char> data;
     {
@@ -117,10 +125,12 @@ void EmitChannel::run() {
       while (slotEmpty) {
         cv.wait(lock);
       }
+      std::cerr << "EmitChannel::run slot is full of " << this->data.size() << std::endl;
       data = std::move(this->data);
       slotEmpty = true;
     }
     cv.notify_all();
+    std::cerr << "EmitChannel::run signaled slot empty" << std::endl;
 
     os.write(reinterpret_cast<const char *>(data.data()), data.size());
     if (!os.good()) {
@@ -128,6 +138,7 @@ void EmitChannel::run() {
       throwException = true;
       return;
     }
+    std::cerr << "EmitChannel::run written" << data.size() << std::endl;
   }
 }
 
