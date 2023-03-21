@@ -88,8 +88,6 @@ EmitChannel::EmitChannel(std::string path) : path(std::move(path)),
                                              runner(std::thread(EmitChannel::run, this)),
                                              throwException(false),
                                              slotEmpty(true) {
-  ;
-  std::cerr << "EmitChannel thread id: " << runner.get_id() << std::endl;
 }
 
 EmitChannel::~EmitChannel() {
@@ -97,7 +95,6 @@ EmitChannel::~EmitChannel() {
 }
 
 void EmitChannel::Write(std::vector<unsigned char> data) {
-  std::cerr << "EmitChannel::Write " << data.size() << std::endl;
   if (throwException) {
     throw exception;
   }
@@ -105,11 +102,9 @@ void EmitChannel::Write(std::vector<unsigned char> data) {
   while (!slotEmpty) {
     cv.wait(lock);
   }
-  std::cerr << "EmitChannel::Write slot is empty" << std::endl;
   this->data = std::move(data);
   slotEmpty = false;
   cv.notify_all();
-  std::cerr << "EmitChannel::Write slot notified slot full" << std::endl;
 }
 
 void EmitChannel::run(EmitChannel *ec) {
@@ -117,15 +112,12 @@ void EmitChannel::run(EmitChannel *ec) {
 }
 
 void EmitChannel::run1() {
-  std::cerr << "EmitChannel::run opening " << path << std::endl;
   std::ofstream os(path);
   if (!os.is_open()) {
     exception = Exception("opening emit channel");
     throwException = true;
     return;
   }
-
-  std::cerr << "EmitChannel::run opened " << path << std::endl;
 
   while (true) {
     std::vector<unsigned char> data;
@@ -134,22 +126,17 @@ void EmitChannel::run1() {
       while (slotEmpty) {
         cv.wait(lock);
       }
-      std::cerr << "EmitChannel::run slot is full of " << this->data.size() << std::endl;
       data = std::move(this->data);
       slotEmpty = true;
     }
     cv.notify_all();
-    std::cerr << "EmitChannel::run signaled slot empty" << std::endl;
 
-    os.write(reinterpret_cast<const char *>(data.data()), data.size());
-    std::cerr << "Completed write" << std::endl;
+    os.write(reinterpret_cast<const char *>(data.data()), data.size()).flush();
     if (!os.good()) {
-      std::cerr << "not good" << std::endl;
       exception = Exception("writing to emit channel");
       throwException = true;
       return;
     }
-    std::cerr << "EmitChannel::run written" << data.size() << std::endl;
   }
 }
 
