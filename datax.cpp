@@ -84,12 +84,13 @@ class EmitChannel {
 };
 
 EmitChannel::EmitChannel(std::string path) : path(std::move(path)),
-                                             runner(&EmitChannel::run, this),
                                              throwException(false),
                                              slotEmpty(true) {
+  runner = std::thread(&EmitChannel::run, this);
 }
 
 EmitChannel::~EmitChannel() {
+  runner.join();
 }
 
 void EmitChannel::Write(std::vector<unsigned char> data) {
