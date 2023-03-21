@@ -69,7 +69,8 @@ class EmitChannel {
   void Write(std::vector<unsigned char> data);
 
  private:
-  void run();
+  void run1();
+  static void run(EmitChannel *ec);
 
   std::string path;
   std::thread runner;
@@ -84,9 +85,10 @@ class EmitChannel {
 };
 
 EmitChannel::EmitChannel(std::string path) : path(std::move(path)),
+                                             runner(std::thread(EmitChannel::run, this)),
                                              throwException(false),
                                              slotEmpty(true) {
-  runner = std::thread(&EmitChannel::run, this);
+  ;
   std::cerr << "EmitChannel thread id: " << runner.get_id() << std::endl;
 }
 
@@ -110,7 +112,11 @@ void EmitChannel::Write(std::vector<unsigned char> data) {
   std::cerr << "EmitChannel::Write slot notified slot full" << std::endl;
 }
 
-void EmitChannel::run() {
+void EmitChannel::run(EmitChannel *ec) {
+  ec->run1();
+}
+
+void EmitChannel::run1() {
   std::ofstream os(path);
   if (!os.is_open()) {
     exception = Exception("opening emit channel");
