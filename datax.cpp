@@ -87,6 +87,7 @@ EmitChannel::EmitChannel(std::string path) : path(std::move(path)),
                                              throwException(false),
                                              slotEmpty(true) {
   runner = std::thread(&EmitChannel::run, this);
+  std::cerr << "EmitChannel thread id: " << runner.get_id() << std::endl;
 }
 
 EmitChannel::~EmitChannel() {
