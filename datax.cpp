@@ -4,7 +4,10 @@
 #include <fstream>
 #include <iostream>
 #include <sstream>
+#include <thread>
 #include <utility>
+#include <mutex>
+#include <condition_variable>
 
 #include <grpcpp/grpcpp.h>
 
@@ -18,6 +21,7 @@ int64_t now() {
 
 class Exception : public datax::Exception {
  public:
+  Exception() = default;
   explicit Exception(std::string message) : message(std::move(message)) {}
 
   const char *what() const noexcept override {
@@ -27,6 +31,105 @@ class Exception : public datax::Exception {
  private:
   std::string message;
 };
+
+class NextChannel {
+ public:
+  explicit NextChannel(const std::string &path);
+  ~NextChannel();
+  void Read(std::vector<unsigned char> *data);
+
+ private:
+  std::string path;
+  std::ifstream is;
+};
+
+NextChannel::NextChannel(const std::string &path) : path(path) {
+}
+
+NextChannel::~NextChannel() {
+  if (is.is_open()) {
+    is.close();
+  }
+}
+
+void NextChannel::Read(std::vector<unsigned char> *data) {
+  if (!is.is_open()) {
+    is.open(path);
+  }
+  is.read(reinterpret_cast<char *>(data->data()), data->size());
+  if (is.fail()) {
+    throw Exception("reading from next channel");
+  }
+}
+
+class EmitChannel {
+ public:
+  explicit EmitChannel(std::string path);
+  ~EmitChannel();
+  void Write(std::vector<unsigned char> data);
+
+ private:
+  void run();
+
+  std::string path;
+  std::thread runner;
+  std::mutex mutex;
+  std::condition_variable cv;
+
+  bool slotEmpty;
+  std::vector<unsigned char> data;
+
+  Exception exception;
+  bool throwException;
+};
+
+EmitChannel::EmitChannel(std::string path) : path(std::move(path)),
+                                             runner(&EmitChannel::run, this),
+                                             throwException(false),
+                                             slotEmpty(true) {
+}
+
+EmitChannel::~EmitChannel() {
+}
+
+void EmitChannel::Write(std::vector<unsigned char> data) {
+  std::unique_lock lock(mutex);
+  while (!slotEmpty) {
+    cv.wait(lock);
+  }
+  this->data = std::move(data);
+  slotEmpty = false;
+  cv.notify_all();
+}
+
+void EmitChannel::run() {
+  std::ofstream os(path);
+  if (!os.is_open()) {
+    exception = Exception("opening emit channel");
+    throwException = true;
+    return;
+  }
+
+  while (true) {
+    std::vector<unsigned char> data;
+    {
+      std::unique_lock lock(mutex);
+      while (slotEmpty) {
+        cv.wait(lock);
+      }
+      data = std::move(this->data);
+      slotEmpty = true;
+    }
+    cv.notify_all();
+
+    os.write(reinterpret_cast<const char *>(data.data()), data.size());
+    if (!os.good()) {
+      exception = Exception("writing to emit channel");
+      throwException = true;
+      return;
+    }
+  }
+}
 
 class Implementation : public datax::DataX {
  public:
@@ -51,6 +154,9 @@ class Implementation : public datax::DataX {
   void report();
   std::shared_ptr<grpc::Channel> clientConn;
   std::unique_ptr<datax::sdk::protocol::v1::DataX::Stub> client;
+
+  std::unique_ptr<NextChannel> nextChannel;
+  std::unique_ptr<EmitChannel> emitChannel;
 
   int64_t receivingTime;
   int64_t decodingTime;
@@ -124,6 +230,22 @@ Implementation::Implementation() : receivingTime(0), decodingTime(0),
   }
   clientConn = grpc::CreateChannel(sidecarAddress, grpc::InsecureChannelCredentials());
   client = datax::sdk::protocol::v1::DataX::NewStub(clientConn);
+  grpc::ClientContext context;
+  datax::sdk::protocol::v1::Settings settings;
+  settings.set_optimizeddatachannel(true);
+  datax::sdk::protocol::v1::Initialization initialization;
+  auto status = client->Initialize(&context, settings, &initialization);
+  if (!status.ok()) {
+    std::ostringstream oss;
+    oss << status.error_code() << ": " << status.error_message();
+    throw Exception(oss.str());
+  }
+  if (!initialization.nextchannelpath().empty()) {
+    nextChannel = std::make_unique<NextChannel>(initialization.nextchannelpath());
+  }
+  if (!initialization.emitchannelpath().empty()) {
+    emitChannel = std::make_unique<EmitChannel>(initialization.emitchannelpath());
+  }
 }
 
 nlohmann::json Implementation::Configuration() {
@@ -147,13 +269,20 @@ datax::RawMessage Implementation::NextRaw() {
     throw Exception(oss.str());
   }
   datax::RawMessage message;
-  const auto &data = reply.data();
-  if (data.empty()) {
-    fprintf(stderr, "Empty data\n");
-    exit(-1);
+
+  if (nextChannel) {
+    message.Data.resize(reply.datasize());
+    nextChannel->Read(&message.Data);
+  } else {
+    const auto &data = reply.data();
+    if (data.empty()) {
+      fprintf(stderr, "Empty data\n");
+      exit(-1);
+    }
+    message.Data = std::vector<unsigned char>(reinterpret_cast<const unsigned char *>(data.data()),
+                                              reinterpret_cast<const unsigned char *>(data.data()) + data.size());
   }
-  message.Data = std::vector<unsigned char>(reinterpret_cast<const unsigned char *>(data.data()),
-                                            reinterpret_cast<const unsigned char *>(data.data()) + data.size());
+
   message.Reference = reply.reference();
   message.Stream = reply.stream();
   receivingTime += now() - start;
@@ -189,7 +318,12 @@ void Implementation::EmitRaw(const unsigned char *data, int dataSize, const std:
   datax::sdk::protocol::v1::EmitMessage request;
   datax::sdk::protocol::v1::EmitResult reply;
 
-  request.set_data(data, dataSize);
+  if (emitChannel) {
+    request.set_datasize(dataSize);
+    emitChannel->Write(std::vector<unsigned char>(data, data+dataSize));
+  } else {
+    request.set_data(data, dataSize);
+  }
   request.set_reference(reference);
 
   auto status = client->Emit(&context, request, &reply);
