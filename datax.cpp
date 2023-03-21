@@ -117,6 +117,7 @@ void EmitChannel::run(EmitChannel *ec) {
 }
 
 void EmitChannel::run1() {
+  std::cerr << "EmitChannel::run opening " << path << std::endl;
   std::ofstream os(path);
   if (!os.is_open()) {
     exception = Exception("opening emit channel");
@@ -141,7 +142,9 @@ void EmitChannel::run1() {
     std::cerr << "EmitChannel::run signaled slot empty" << std::endl;
 
     os.write(reinterpret_cast<const char *>(data.data()), data.size());
+    std::cerr << "Completed write" << std::endl;
     if (!os.good()) {
+      std::cerr << "not good" << std::endl;
       exception = Exception("writing to emit channel");
       throwException = true;
       return;
