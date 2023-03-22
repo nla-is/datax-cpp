@@ -237,7 +237,10 @@ Implementation::Implementation() : receivingTime(0), decodingTime(0),
   if (sidecarAddress.empty()) {
     sidecarAddress = "127.0.0.1:20001";
   }
-  clientConn = grpc::CreateChannel(sidecarAddress, grpc::InsecureChannelCredentials());
+  grpc::ChannelArguments channelArguments;
+  channelArguments.SetMaxSendMessageSize(32 * 1024 * 1024);
+  channelArguments.SetMaxReceiveMessageSize(32 * 1024 * 1024);
+  clientConn = grpc::CreateCustomChannel(sidecarAddress, grpc::InsecureChannelCredentials(), channelArguments);
   client = datax::sdk::protocol::v1::DataX::NewStub(clientConn);
   grpc::ClientContext context;
   datax::sdk::protocol::v1::Settings settings;
