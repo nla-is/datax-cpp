@@ -63,7 +63,7 @@ void Implementation::report() {
   latestReport = now();
 }
 
-Implementation::Implementation(std::initializer_list<Option> options) : receivingTime(0), decodingTime(0),
+Implementation::Implementation(std::initializer_list<Option *> options) : receivingTime(0), decodingTime(0),
                                                                         encodingTime(0), transferringTime(0),
                                                                         previousReceivingTime(0), previousDecodingTime(0),
                                                                         previousEncodingTime(0), previousTransferringTime(0),
@@ -87,7 +87,7 @@ Implementation::Implementation(std::initializer_list<Option> options) : receivin
   }
 
   for (auto & option : options) {
-    option.Apply(this);
+    option->Apply(this);
   }
 }
 

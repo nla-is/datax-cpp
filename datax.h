@@ -50,7 +50,7 @@ class WithFanOut : public Option {
 };
 
 std::shared_ptr<DataX> New();
-std::shared_ptr<DataX> New(std::initializer_list<Option> options);
+std::shared_ptr<DataX> New(std::initializer_list<Option *> options);
 }
 
 #endif //_DATAX_H

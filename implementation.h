@@ -30,7 +30,7 @@ class Exception : public datax::Exception {
 
 class Implementation : public datax::DataX {
  public:
-  explicit Implementation(std::initializer_list<datax::Option> options);
+  explicit Implementation(std::initializer_list<datax::Option *> options);
   Implementation(const Implementation &) = delete;
   Implementation(Implementation &&) = delete;
 
