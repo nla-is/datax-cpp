@@ -67,5 +67,5 @@ install(FILES ${CMAKE_CURRENT_LIST_DIR}/datax.h ${CMAKE_CURRENT_LIST_DIR}/json.h
        TYPE INCLUDE)
 
 add_executable(test-sdk
-        test-sdk.cpp)
+        test-sdk.cpp fan_out.cpp implementation.h implementation.cpp queue.h)
 target_link_libraries(test-sdk ${PROJECT_NAME})
