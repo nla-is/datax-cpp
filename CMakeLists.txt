@@ -45,6 +45,10 @@ add_custom_target(generate
 add_library(${PROJECT_NAME} STATIC
         datax.cpp
         datax.h
+        fan_out.cpp
+        implementation.h
+        implementation.cpp
+        queue.h
         ${CMAKE_CURRENT_BINARY_DIR}/datax-sdk-protocol-v1.grpc.pb.cc
         ${CMAKE_CURRENT_BINARY_DIR}/datax-sdk-protocol-v1.grpc.pb.h
         ${CMAKE_CURRENT_BINARY_DIR}/datax-sdk-protocol-v1.pb.cc
@@ -67,5 +71,5 @@ install(FILES ${CMAKE_CURRENT_LIST_DIR}/datax.h ${CMAKE_CURRENT_LIST_DIR}/json.h
        TYPE INCLUDE)
 
 add_executable(test-sdk
-        test-sdk.cpp fan_out.cpp implementation.h implementation.cpp queue.h)
+        test-sdk.cpp)
 target_link_libraries(test-sdk ${PROJECT_NAME})
