@@ -22,6 +22,7 @@ int64_t now() {
 class Exception : public datax::Exception {
  public:
   Exception() = default;
+
   explicit Exception(std::string message) : message(std::move(message)) {}
 
   const char *what() const noexcept override {
@@ -35,7 +36,9 @@ class Exception : public datax::Exception {
 class NextChannel {
  public:
   explicit NextChannel(const std::string &path);
+
   ~NextChannel();
+
   void Read(std::vector<unsigned char> *data);
 
  private:
@@ -65,11 +68,14 @@ void NextChannel::Read(std::vector<unsigned char> *data) {
 class EmitChannel {
  public:
   explicit EmitChannel(std::string path);
+
   ~EmitChannel();
+
   void Write(std::vector<unsigned char> data);
 
  private:
   void run1();
+
   static void run(EmitChannel *ec);
 
   std::string path;
@@ -143,15 +149,21 @@ void EmitChannel::run1() {
 class Implementation : public datax::DataX {
  public:
   Implementation();
+
   Implementation(const Implementation &) = delete;
+
   Implementation(Implementation &&) = delete;
 
   nlohmann::json Configuration() override;
+
   datax::RawMessage NextRaw() override;
+
   datax::Message Next() override;
 
   void Emit(const nlohmann::json &message, const std::string &reference = "") override;
+
   void EmitRaw(const std::vector<unsigned char> &data, const std::string &reference = "") override;
+
   void EmitRaw(const unsigned char *data, int dataSize, const std::string &reference = "") override;
 
   static std::shared_ptr<datax::DataX> Instance() {
@@ -161,6 +173,7 @@ class Implementation : public datax::DataX {
 
  private:
   void report();
+
   std::shared_ptr<grpc::Channel> clientConn;
   std::unique_ptr<datax::sdk::protocol::v1::DataX::Stub> client;
 
@@ -244,19 +257,12 @@ Implementation::Implementation() : receivingTime(0), decodingTime(0),
   client = datax::sdk::protocol::v1::DataX::NewStub(clientConn);
   grpc::ClientContext context;
   datax::sdk::protocol::v1::Settings settings;
-  settings.set_optimizeddatachannel(true);
   datax::sdk::protocol::v1::Initialization initialization;
   auto status = client->Initialize(&context, settings, &initialization);
   if (!status.ok()) {
     std::ostringstream oss;
     oss << status.error_code() << ": " << status.error_message();
     throw Exception(oss.str());
-  }
-  if (!initialization.nextchannelpath().empty()) {
-    nextChannel = std::make_unique<NextChannel>(initialization.nextchannelpath());
-  }
-  if (!initialization.emitchannelpath().empty()) {
-    emitChannel = std::make_unique<EmitChannel>(initialization.emitchannelpath());
   }
 }
 
@@ -282,18 +288,13 @@ datax::RawMessage Implementation::NextRaw() {
   }
   datax::RawMessage message;
 
-  if (nextChannel) {
-    message.Data.resize(reply.datasize());
-    nextChannel->Read(&message.Data);
-  } else {
-    const auto &data = reply.data();
-    if (data.empty()) {
-      fprintf(stderr, "Empty data\n");
-      exit(-1);
-    }
-    message.Data = std::vector<unsigned char>(reinterpret_cast<const unsigned char *>(data.data()),
-                                              reinterpret_cast<const unsigned char *>(data.data()) + data.size());
+  const auto &data = reply.data();
+  if (data.empty()) {
+    fprintf(stderr, "Empty data\n");
+    exit(-1);
   }
+  message.Data = std::vector<unsigned char>(reinterpret_cast<const unsigned char *>(data.data()),
+                                            reinterpret_cast<const unsigned char *>(data.data()) + data.size());
 
   message.Reference = reply.reference();
   message.Stream = reply.stream();
@@ -330,12 +331,7 @@ void Implementation::EmitRaw(const unsigned char *data, int dataSize, const std:
   datax::sdk::protocol::v1::EmitMessage request;
   datax::sdk::protocol::v1::EmitResult reply;
 
-  if (emitChannel) {
-    request.set_datasize(dataSize);
-    emitChannel->Write(std::vector<unsigned char>(data, data+dataSize));
-  } else {
-    request.set_data(data, dataSize);
-  }
+  request.set_data(data, dataSize);
   request.set_reference(reference);
 
   auto status = client->Emit(&context, request, &reply);
