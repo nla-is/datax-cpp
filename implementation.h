@@ -5,11 +5,6 @@
 #pragma once
 
 #include "datax.h"
-#include <grpcpp/grpcpp.h>
-
-#include "queue.h"
-
-#include "datax-sdk-protocol-v1.grpc.pb.h"
 
 namespace datax::sdk::implementation {
 int64_t now();
@@ -20,7 +15,7 @@ class Exception : public datax::Exception {
   Exception() = default;
   explicit Exception(std::string message) : message(std::move(message)) {}
 
-  const char *what() const noexcept override {
+  [[nodiscard]] const char *what() const noexcept override {
     return message.c_str();
   }
 
@@ -30,7 +25,7 @@ class Exception : public datax::Exception {
 
 class Implementation : public datax::DataX {
  public:
-  explicit Implementation(std::initializer_list<datax::Option *> options);
+  Implementation();
   Implementation(const Implementation &) = delete;
   Implementation(Implementation &&) = delete;
 
@@ -38,15 +33,12 @@ class Implementation : public datax::DataX {
   datax::RawMessage NextRaw() override;
   datax::Message Next() override;
 
-  void Emit(const nlohmann::json &message, const std::string &reference = "") override;
-  void EmitRaw(const std::vector<unsigned char> &data, const std::string &reference = "") override;
-  void EmitRaw(const unsigned char *data, int dataSize, const std::string &reference = "") override;
-  std::vector<nlohmann::json> FanOut(const std::vector<nlohmann::json> &messages) override;
+  void Emit(const nlohmann::json &message, const std::string &reference) override;
+  void EmitRaw(const std::vector<unsigned char> &data, const std::string &reference) override;
+  void EmitRaw(const unsigned char *data, int dataSize, const std::string &reference) override;
 
  private:
   void report();
-  std::shared_ptr<grpc::Channel> clientConn;
-  std::unique_ptr<datax::sdk::protocol::v1::DataX::Stub> client;
 
   int64_t receivingTime;
   int64_t decodingTime;
@@ -60,10 +52,16 @@ class Implementation : public datax::DataX {
 
   int64_t latestReport;
 
-  datax::sdk::protocol::v1::Initialization initialization;
-
-  friend WithFanOut;
-  std::shared_ptr<Queue<nlohmann::json>> fanOutInputQueue;
-  std::shared_ptr<Queue<nlohmann::json>> fanOutOutputQueue;
+  void *sidecar_library_handle;
+  void (*datax_sdk_v3_begin_initialize)();
+  void (*datax_sdk_v3_end_initialize)();
+  void (*datax_sdk_v3_next)();
+  const char *(*datax_sdk_v3_get_message_reference)();
+  const char *(*datax_sdk_v3_get_message_stream)();
+  const unsigned char *(*datax_sdk_v3_get_message_data)();
+  int32_t (*datax_sdk_v3_get_message_data_size)();
+  void (*datax_sdk_v3_set_message_reference)(const char *reference);
+  void (*datax_sdk_v3_set_message_data)(const unsigned char *data, int32_t data_size);
+  void (*datax_sdk_v3_emit)();
 };
 }

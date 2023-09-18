@@ -8,6 +8,9 @@
 #include <sstream>
 #include <future>
 
+#include <inttypes.h>
+#include <dlfcn.h>
+
 using datax::sdk::implementation::Implementation;
 
 int64_t datax::sdk::implementation::now() {
@@ -37,7 +40,9 @@ void Implementation::report() {
 
     auto processing = elapsedTime - receiving - decoding - encoding - transferring;
     fprintf(stderr,
-            "[DataX] Time for receiving: %ld ms (%0.2lf%%), decoding: %ld ms (%0.2lf%%), processing: %ld ms (%0.2lf%%), encoding: %ld ms (%0.2lf%%), transferring: %ld ms (%0.2lf%%)\n",
+            "[DataX] Time for receiving: %" PRId64 " ms (%0.2lf%%), decoding: %" PRId64
+            " ms (%0.2lf%%), processing: %" PRId64 " ms (%0.2lf%%), encoding: %" PRId64
+            " ms (%0.2lf%%), transferring: %" PRId64 " ms (%0.2lf%%)\n",
             receiving,
             (((double) receiving) / ((double) elapsedTime)) * 100,
             decoding,
@@ -63,32 +68,105 @@ void Implementation::report() {
   latestReport = now();
 }
 
-Implementation::Implementation(std::initializer_list<Option *> options) : receivingTime(0), decodingTime(0),
-                                                                        encodingTime(0), transferringTime(0),
-                                                                        previousReceivingTime(0), previousDecodingTime(0),
-                                                                        previousEncodingTime(0), previousTransferringTime(0),
-                                                                        latestReport(0) {
-  auto sidecarAddress = Getenv("DATAX_SIDECAR_ADDRESS");
-  if (sidecarAddress.empty()) {
-    sidecarAddress = "127.0.0.1:20001";
+Implementation::Implementation() : receivingTime(0), decodingTime(0),
+                                   encodingTime(0), transferringTime(0),
+                                   previousReceivingTime(0), previousDecodingTime(0),
+                                   previousEncodingTime(0), previousTransferringTime(0),
+                                   latestReport(0) {
+  auto sidecar_library = Getenv("DATAX_SIDECAR_LIBRARY");
+  if (sidecar_library.empty()) {
+    throw Exception("sidecar library not provided");
   }
-  grpc::ChannelArguments channelArguments;
-  channelArguments.SetMaxSendMessageSize(32 * 1024 * 1024);
-  channelArguments.SetMaxReceiveMessageSize(32 * 1024 * 1024);
-  clientConn = grpc::CreateCustomChannel(sidecarAddress, grpc::InsecureChannelCredentials(), channelArguments);
-  client = datax::sdk::protocol::v1::DataX::NewStub(clientConn);
-  grpc::ClientContext context;
-  datax::sdk::protocol::v1::Settings settings;
-  auto status = client->Initialize(&context, settings, &initialization);
-  if (!status.ok()) {
+
+  sidecar_library_handle = dlopen(sidecar_library.c_str(), RTLD_LAZY | RTLD_LOCAL);
+  if (sidecar_library_handle == nullptr) {
     std::ostringstream oss;
-    oss << status.error_code() << ": " << status.error_message();
+    oss << "error " << dlerror() << " opening sidecar library '" << sidecar_library << "'";
     throw Exception(oss.str());
   }
 
-  for (auto & option : options) {
-    option->Apply(this);
+  datax_sdk_v3_begin_initialize = (void (*)()) dlsym(sidecar_library_handle,
+                                                     "datax_sdk_v3_begin_initialize");
+  if (datax_sdk_v3_begin_initialize == nullptr) {
+    std::ostringstream oss;
+    oss << "error " << dlerror() << " loading function 'datax_sdk_v3_begin_initialize'";
+    throw Exception(oss.str());
   }
+
+  datax_sdk_v3_end_initialize = (void (*)()) dlsym(sidecar_library_handle,
+                                                   "datax_sdk_v3_end_initialize");
+  if (datax_sdk_v3_end_initialize == nullptr) {
+    std::ostringstream oss;
+    oss << "error " << dlerror() << " loading function 'datax_sdk_v3_begin_initialize'";
+    throw Exception(oss.str());
+  }
+
+  datax_sdk_v3_next = (void (*)()) dlsym(sidecar_library_handle,
+                                         "datax_sdk_v3_next");
+  if (datax_sdk_v3_next == nullptr) {
+    std::ostringstream oss;
+    oss << "error " << dlerror() << " loading function 'datax_sdk_v3_next'";
+    throw Exception(oss.str());
+  }
+
+  datax_sdk_v3_get_message_reference = (const char *(*)()) dlsym(sidecar_library_handle,
+                                                                 "datax_sdk_v3_get_message_reference");
+  if (datax_sdk_v3_get_message_reference == nullptr) {
+    std::ostringstream oss;
+    oss << "error " << dlerror() << " loading function 'datax_sdk_v3_get_message_reference'";
+    throw Exception(oss.str());
+  }
+
+  datax_sdk_v3_get_message_stream = (const char *(*)()) dlsym(sidecar_library_handle,
+                                                              "datax_sdk_v3_get_message_stream");
+  if (datax_sdk_v3_get_message_stream == nullptr) {
+    std::ostringstream oss;
+    oss << "error " << dlerror() << " loading function 'datax_sdk_v3_get_message_stream'";
+    throw Exception(oss.str());
+  }
+
+  datax_sdk_v3_get_message_data = (const unsigned char *(*)()) dlsym(sidecar_library_handle,
+                                                                     "datax_sdk_v3_get_message_data");
+  if (datax_sdk_v3_get_message_data == nullptr) {
+    std::ostringstream oss;
+    oss << "error " << dlerror() << " loading function 'datax_sdk_v3_get_message_data'";
+    throw Exception(oss.str());
+  }
+
+  datax_sdk_v3_get_message_data_size = (int32_t (*)()) dlsym(sidecar_library_handle,
+                                                             "datax_sdk_v3_get_message_data_size");
+  if (datax_sdk_v3_get_message_data_size == nullptr) {
+    std::ostringstream oss;
+    oss << "error " << dlerror() << " loading function 'datax_sdk_v3_get_message_data_size'";
+    throw Exception(oss.str());
+  }
+
+  datax_sdk_v3_set_message_reference = (void (*)(const char *)) dlsym(sidecar_library_handle,
+                                                                      "datax_sdk_v3_set_message_reference");
+  if (datax_sdk_v3_set_message_reference == nullptr) {
+    std::ostringstream oss;
+    oss << "error " << dlerror() << " loading function 'datax_sdk_v3_set_message_reference'";
+    throw Exception(oss.str());
+  }
+
+  datax_sdk_v3_set_message_data = (void (*)(const unsigned char *, int32_t)) dlsym(sidecar_library_handle,
+                                                                                   "datax_sdk_v3_set_message_data");
+  if (datax_sdk_v3_set_message_data == nullptr) {
+    std::ostringstream oss;
+    oss << "error " << dlerror() << " loading function 'datax_sdk_v3_set_message_data'";
+    throw Exception(oss.str());
+  }
+
+  datax_sdk_v3_emit = (void (*)()) dlsym(sidecar_library_handle,
+                                         "datax_sdk_v3_emit");
+  if (datax_sdk_v3_emit == nullptr) {
+    std::ostringstream oss;
+    oss << "error " << dlerror() << " loading function 'datax_sdk_v3_emit'";
+    throw Exception(oss.str());
+  }
+
+  datax_sdk_v3_begin_initialize();
+  datax_sdk_v3_end_initialize();
 }
 
 nlohmann::json Implementation::Configuration() {
@@ -102,29 +180,15 @@ nlohmann::json Implementation::Configuration() {
 
 datax::RawMessage Implementation::NextRaw() {
   auto start = now();
-  grpc::ClientContext context;
-  datax::sdk::protocol::v1::NextOptions request;
-  datax::sdk::protocol::v1::NextMessage reply;
-  auto status = client->Next(&context, request, &reply);
-  if (!status.ok()) {
-    std::ostringstream oss;
-    oss << status.error_code() << ": " << status.error_message();
-    throw Exception(oss.str());
-  }
+  datax_sdk_v3_next();
   datax::RawMessage message;
-
-  const auto &data = reply.data();
-  if (data.empty()) {
-    fprintf(stderr, "Empty data\n");
-    exit(-1);
-  }
-  message.Data = std::vector<unsigned char>(reinterpret_cast<const unsigned char *>(data.data()),
-                                            reinterpret_cast<const unsigned char *>(data.data()) + data.size());
-
-  message.Reference = reply.reference();
-  message.Stream = reply.stream();
-  receivingTime += now() - start;
+  message.Reference = datax_sdk_v3_get_message_reference();
+  message.Stream = datax_sdk_v3_get_message_stream();
+  auto data = datax_sdk_v3_get_message_data();
+  auto data_size = datax_sdk_v3_get_message_data_size();
+  message.Data = std::vector<unsigned char>(data, data + data_size);
   report();
+  receivingTime += now() - start;
   return message;
 }
 
@@ -152,33 +216,8 @@ void Implementation::EmitRaw(const std::vector<unsigned char> &data, const std::
 
 void Implementation::EmitRaw(const unsigned char *data, int dataSize, const std::string &reference) {
   auto start = now();
-  grpc::ClientContext context;
-  datax::sdk::protocol::v1::EmitMessage request;
-  datax::sdk::protocol::v1::EmitResult reply;
-
-  request.set_data(data, dataSize);
-  request.set_reference(reference);
-
-  auto status = client->Emit(&context, request, &reply);
-  if (!status.ok()) {
-    std::ostringstream oss;
-    oss << status.error_code() << ": " << status.error_message();
-    throw Exception(oss.str());
-  }
+  datax_sdk_v3_set_message_reference(reference.c_str());
+  datax_sdk_v3_set_message_data(data, dataSize);
   transferringTime += now() - start;
   report();
-}
-
-std::vector<nlohmann::json> Implementation::FanOut(const std::vector<nlohmann::json> &messages) {
-  auto a = std::async([&]() {
-    for (auto &msg: messages) {
-      fanOutInputQueue->push(msg);
-    }
-  });
-  std::vector<nlohmann::json> result;
-  while (result.size() < messages.size()) {
-    result.emplace_back(fanOutOutputQueue->pop());
-  }
-  a.wait();
-  return result;
 }
