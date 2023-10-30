@@ -86,5 +86,5 @@ std::shared_ptr<DataX> datax::New() {
 datax::Exception::Exception(std::string message) : message_(std::move(message)) {}
 
 const char *datax::Exception::what() const noexcept {
-  return exception::what();
+  return message_.c_str();
 }

@@ -1,4 +1,5 @@
 #include <datax.h>
+#include <iostream>
 
 int64_t currentTime() {
   return static_cast<int64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -6,7 +7,13 @@ int64_t currentTime() {
 }
 
 int main() {
-  auto dx = datax::New();
+  std::shared_ptr<datax::DataX> dx;
+  try {
+    dx = datax::New();
+  } catch (const std::exception &ex) {
+    std::cerr << "Error " << ex.what() << " initializing DataX" << std::endl;
+    return 255;
+  }
   int64_t nextTime = 0;
   int64_t previousNextTime = 0;
   int64_t emitTime = 0;
