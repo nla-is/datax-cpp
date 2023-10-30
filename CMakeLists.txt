@@ -3,56 +3,9 @@ project(datax-cpp)
 
 set(CMAKE_CXX_STANDARD 17)
 
-find_package(Protobuf REQUIRED)
-find_package(gRPC CONFIG)
-
-if(gRPC_FOUND)
-  set(GRPCPP_INCLUDE_DIRS $<TARGET_PROPERTY:gRPC::grpc++,INTERFACE_INCLUDE_DIRECTORIES>)
-  set(GRPCPP_LIBRARIES gRPC::grpc++)
-else()
-  find_package(PkgConfig REQUIRED)
-  pkg_search_module(GRPC REQUIRED grpc)
-  pkg_search_module(GRPCPP REQUIRED grpc++)
-  list(APPEND GRPCPP_INCLUDE_DIRS ${GRPC_INCLUDE_DIRS})
-  list(APPEND GRPCPP_LIBRARIES ${GRPC_LIBRARIES})
-endif()
-
-if(NOT GRPC_CPP_PLUGIN)
-    find_program(GRPC_CPP_PLUGIN grpc_cpp_plugin REQUIRED)
-endif()
-
-include_directories(${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR})
-
-message(STATUS "Protobuf compiler: ${Protobuf_PROTOC_EXECUTABLE}")
-message(STATUS "gRPC C++ plugin: ${GRPC_CPP_PLUGIN}")
-
-set(PROTOCOL_FILE ${CMAKE_CURRENT_SOURCE_DIR}/datax-sdk-protocol/v1/datax-sdk-protocol.proto)
-
-add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/datax-sdk-protocol-v1.proto
-        COMMAND ${CMAKE_COMMAND} -E copy ${PROTOCOL_FILE} ${CMAKE_CURRENT_BINARY_DIR}/datax-sdk-protocol-v1.proto
-        DEPENDS ${PROTOCOL_FILE})
-
-add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/datax-sdk-protocol-v1.grpc.pb.cc
-        ${CMAKE_CURRENT_BINARY_DIR}/datax-sdk-protocol-v1.grpc.pb.h
-        ${CMAKE_CURRENT_BINARY_DIR}/datax-sdk-protocol-v1.pb.cc
-        ${CMAKE_CURRENT_BINARY_DIR}/datax-sdk-protocol-v1.pb.h
-        COMMAND ${Protobuf_PROTOC_EXECUTABLE} --grpc_out ${CMAKE_CURRENT_BINARY_DIR} --cpp_out ${CMAKE_CURRENT_BINARY_DIR} --plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN} -I ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_BINARY_DIR}/datax-sdk-protocol-v1.proto
-        DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/datax-sdk-protocol-v1.proto)
-
-add_custom_target(generate
-        DEPENDS sdk.grpc.pb.cc)
-
 add_library(${PROJECT_NAME} STATIC
         datax.cpp
-        datax.h
-        fan_out.cpp
-        implementation.h
-        implementation.cpp
-        queue.h
-        ${CMAKE_CURRENT_BINARY_DIR}/datax-sdk-protocol-v1.grpc.pb.cc
-        ${CMAKE_CURRENT_BINARY_DIR}/datax-sdk-protocol-v1.grpc.pb.h
-        ${CMAKE_CURRENT_BINARY_DIR}/datax-sdk-protocol-v1.pb.cc
-        ${CMAKE_CURRENT_BINARY_DIR}/datax-sdk-protocol-v1.pb.h)
+        datax.h)
 target_compile_options(${PROJECT_NAME} PUBLIC "-O3")
 target_include_directories(
         ${PROJECT_NAME}

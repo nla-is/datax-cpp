@@ -1,6 +1,6 @@
 /*
     __ _____ _____ _____
- __|  |   __|     |   | |  JSON for Modern C++
+ __|  |   __|     |   | |  JSON for Modern Cgit s++
 |  |  |__   |  |  | | | |  version 3.10.4
 |_____|_____|_____|_|___|  https://github.com/nlohmann/json
 
