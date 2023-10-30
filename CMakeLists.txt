@@ -11,6 +11,9 @@ add_library(${PROJECT_NAME} STATIC
         datax.cpp
         datax.h
         json.hpp)
+target_include_directories(
+        ${PROJECT_NAME}
+        INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
 target_link_libraries(${PROJECT_NAME} PUBLIC ${DL})
 
 # install (if required)

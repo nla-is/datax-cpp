@@ -6,10 +6,7 @@ RUN apt-get update \
         cmake \
         git \
         g++ \
-        libgrpc++-dev \
-        libprotobuf-dev \
         make \
-        protobuf-compiler-grpc \
     && apt-get clean
 
 RUN mkdir /src
@@ -24,11 +21,6 @@ ADD main.cpp /src
 RUN cmake /src && make
 
 FROM debian:bookworm-slim
-
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends \
-        libgrpc++1.51 \
-    && apt-get clean
 
 COPY --from=build /build/repeater /repeater
 
