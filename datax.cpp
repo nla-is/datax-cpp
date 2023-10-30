@@ -2,6 +2,7 @@
 
 #include <fstream>
 #include <sstream>
+#include <string_view>
 #include <utility>
 
 #include <dlfcn.h>
