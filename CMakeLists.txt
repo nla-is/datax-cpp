@@ -3,8 +3,6 @@ project(datax-cpp)
 
 set(CMAKE_CXX_STANDARD 17)
 
-find_library(DL dl REQUIRED)
-
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
 add_library(${PROJECT_NAME} STATIC
@@ -14,7 +12,7 @@ add_library(${PROJECT_NAME} STATIC
 target_include_directories(
         ${PROJECT_NAME}
         INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
-target_link_libraries(${PROJECT_NAME} PUBLIC ${DL})
+target_link_libraries(${PROJECT_NAME} PUBLIC ${CMAKE_DL_LIBS})
 
 # install (if required)
 target_include_directories(${PROJECT_NAME}
